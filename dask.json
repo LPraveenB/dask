@@ -7,10 +7,11 @@
   "projectNumber": "1051633815220",
   "network": "vertexai",
   "serviceAccount": "dask-testing@inventory-solution-382204.iam.gserviceaccount.com",
-  "containerImage": "gcr.io/inventory-solution-382204/dask-req:v1.1",
+  "containerImage": "us-west1-docker.pkg.dev/inventory-solution-382204/dask-docker",
   "sourceImage": "projects/ubuntu-os-cloud/global/images/ubuntu-2004-focal-v20230616",
   "dockerImage": "docker.io/lavupraveen/dask-req:v1.0",
-  "machineType": "n1-standard-1",
+  "masterMachineType": "n1-standard-1",
+  "workerMachineType": "n1-standard-1",
   "nWorkers": 1,
   "countryList": [
     "Denmark", "China", "Netherlands", "Austria", "Iceland", "Vietnam", "Russia", "Ukraine"],

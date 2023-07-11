@@ -8,3 +8,5 @@ docker tag dask-mlpipeline-image:latest ${CLOUD_REPOSITORY}/dask-mlpipeline-imag
 docker push ${CLOUD_REPOSITORY}/dask-mlpipeline-image:latest
 
 
+
+us-docker.pkg.dev/inventory-solution-382204/dask-docker
