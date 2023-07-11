@@ -32,13 +32,13 @@ RUN apt-get update && apt-get install -y google-cloud-sdk
 
 
 WORKDIR /app
-COPY application_default_credentials.json /app
+
 COPY requirements.txt /app
 #COPY git_clone.sh /app
 RUN pip install google-api-python-client
 RUN pip3 install -r requirements.txt
 #RUN bash git_clone.sh
-ENV GOOGLE_APPLICATION_CREDENTIALS=/app/application_default_credentials.json
+
 COPY environment.yml /app
 RUN mkdir /app/.config
 RUN mkdir /app/.config/dask/
