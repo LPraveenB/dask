@@ -1,0 +1,41 @@
+name: Dask dataframe
+outputs:
+- {name: Output, type: String}
+implementation:
+  container:
+    image: gcr.io/inventory-solution-382204/dask-req:v1.1
+    command:
+    - sh
+    - -c
+    - |2
+
+      if ! [ -x "$(command -v pip)" ]; then
+          python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip
+      fi
+
+      PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-script-location 'dask==2023.6.0' 'distributed==2023.6.0' 'kfp==1.8.20' && "$0" "$@"
+    - sh
+    - -ec
+    - |
+      program_path=$(mktemp -d)
+      printf "%s" "$0" > "$program_path/ephemeral_component.py"
+      python3 -m kfp.v2.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+    - |2+
+
+      import kfp
+      from kfp.v2 import dsl
+      from kfp.v2.dsl import *
+      from typing import *
+
+      def dask_dataframe() -> str:
+          import subprocess
+
+          subprocess.run(["python", "gcp_dask.py"])
+
+          return "Dask code executed successfully"
+
+    args:
+    - --executor_input
+    - {executorInput: null}
+    - --function_to_execute
+    - dask_dataframe

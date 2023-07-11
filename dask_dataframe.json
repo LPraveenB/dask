@@ -1,0 +1,65 @@
+{
+  "pipelineSpec": {
+    "components": {
+      "comp-dask-dataframe": {
+        "executorLabel": "exec-dask-dataframe",
+        "outputDefinitions": {
+          "parameters": {
+            "Output": {
+              "type": "STRING"
+            }
+          }
+        }
+      }
+    },
+    "deploymentSpec": {
+      "executors": {
+        "exec-dask-dataframe": {
+          "container": {
+            "args": [
+              "--executor_input",
+              "{{$}}",
+              "--function_to_execute",
+              "dask_dataframe"
+            ],
+            "command": [
+              "sh",
+              "-c",
+              "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-script-location 'dask==2023.6.0' 'distributed==2023.6.0' 'kfp==1.8.20' && \"$0\" \"$@\"\n",
+              "sh",
+              "-ec",
+              "program_path=$(mktemp -d)\nprintf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\"\npython3 -m kfp.v2.components.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n",
+              "\nimport kfp\nfrom kfp.v2 import dsl\nfrom kfp.v2.dsl import *\nfrom typing import *\n\ndef dask_dataframe() -> str:\n    import subprocess\n\n    subprocess.run([\"python\", \"gcp_dask.py\"])\n\n    return \"Dask code executed successfully\"\n\n"
+            ],
+            "image": "gcr.io/inventory-solution-382204/dask-req:v1.1"
+          }
+        }
+      }
+    },
+    "pipelineInfo": {
+      "name": "daskdf"
+    },
+    "root": {
+      "dag": {
+        "tasks": {
+          "dask-dataframe": {
+            "cachingOptions": {
+              "enableCache": true
+            },
+            "componentRef": {
+              "name": "comp-dask-dataframe"
+            },
+            "taskInfo": {
+              "name": "dask-dataframe"
+            }
+          }
+        }
+      }
+    },
+    "schemaVersion": "2.0.0",
+    "sdkVersion": "kfp-1.8.20"
+  },
+  "runtimeConfig": {
+    "gcsOutputDirectory": "gs://extracted-bucket-kloud9/dask_data/pipeline_root/"
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "projectId": "inventory-solution-382204",
+  "zone": "us-central1-a",
+  "region": "us-central1",
+  "bucket": "extracted-bucket-kloud9",
+  "blobPrefix": "dask_data",
+  "projectNumber": "1051633815220",
+  "network": "vertexai",
+  "serviceAccount": "dask-testing@inventory-solution-382204.iam.gserviceaccount.com",
+  "containerImage": "gcr.io/inventory-solution-382204/dask-req:v1.1",
+  "sourceImage": "projects/ubuntu-os-cloud/global/images/ubuntu-2004-focal-v20230616",
+  "dockerImage": "docker.io/lavupraveen/dask-req:v1.0",
+  "machineType": "n1-standard-1",
+  "nWorkers": 1,
+  "countryList": [
+    "Denmark", "China", "Netherlands", "Austria", "Iceland", "Vietnam", "Russia", "Ukraine"],
+  "yearList" : ["2010", "2011", "2012"]
+
+}

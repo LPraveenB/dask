@@ -1,0 +1,3 @@
+cloudprovider:
+  gcp:
+    projectid: "inventory-solution-382204"
