@@ -42,9 +42,9 @@ RUN pip3 install -r requirements.txt
 COPY environment.yml /app
 RUN mkdir /app/.config
 RUN mkdir /app/.config/dask/
-RUN touch /app/.config/dask/cloudprovider.yamlz
+RUN touch /app/.config/dask/cloudprovider.yaml
 COPY cloudprovider.yaml /app/.config/dask/cloudprovider.yaml
 COPY gcp_dask.py /app
-COPY dask.json /app
+COPY component/training/dask.json /app
 
 ENTRYPOINT ["python", "gcp_dask.py"]
