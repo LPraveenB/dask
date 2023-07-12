@@ -17,11 +17,17 @@
             "master_machine_type": {
               "type": "STRING"
             },
+            "num_workers": {
+              "type": "INT"
+            },
             "project_id": {
               "type": "STRING"
             },
             "project_location": {
               "type": "STRING"
+            },
+            "replica_count": {
+              "type": "INT"
             },
             "staging_bucket": {
               "type": "STRING"
@@ -46,11 +52,11 @@
             "command": [
               "sh",
               "-c",
-              "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-script-location 'dask==2023.6.0' 'distributed==2023.6.0' 'kfp==1.8.20' && \"$0\" \"$@\"\n",
+              "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-script-location 'google-cloud-aiplatform' 'kfp==1.8.20' && \"$0\" \"$@\"\n",
               "sh",
               "-ec",
               "program_path=$(mktemp -d)\nprintf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\"\npython3 -m kfp.v2.components.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n",
-              "\nimport kfp\nfrom kfp.v2 import dsl\nfrom kfp.v2.dsl import *\nfrom typing import *\n\ndef dask_dataframe(\n        project_id: str,\n        project_location: str,\n        container_uri: str,\n        staging_bucket: str,\n        job_name: str,\n        job_suffix: str,\n        master_machine_type: str,\n        worker_machine_type: str\n):\n\n    import json\n    import google.cloud.aiplatform as aip\n\n    worker_pool_specs = [\n        {\n            \"machine_spec\": {\n                \"machine_type\": master_machine_type,\n            },\n            \"replica_count\": 1,\n            \"container_spec\": {\n                \"image_uri\": container_uri,\n                \"command\": ['python', 'dataframe_task.py'],\n                \"args\": [\n                    '--run_name', job_name + '_' + job_suffix,\n                    '--num_workers', str(WORKERS)\n                ],\n            },\n        },\n        {\n            \"machine_spec\": {\n                \"machine_type\": worker_machine_type,\n            },\n            \"container_spec\": {\n                \"image_uri\": container_uri,\n                \"command\": ['bash', 'entrypoint.sh'],\n                \"args\": [\n                    '--num_workers', str(WORKERS)\n                ],\n            },\n        }\n    ]\n\n    my_job = aip.CustomJob(\n        display_name=job_name + '_' + job_suffix,\n        worker_pool_specs=worker_pool_specs,\n        staging_bucket=staging_bucket,\n        project=project_id,\n        location=project_location\n    )\n\n    my_job.run()\n\n"
+              "\nimport kfp\nfrom kfp.v2 import dsl\nfrom kfp.v2.dsl import *\nfrom typing import *\n\ndef dask_dataframe(\n        project_id: str,\n        project_location: str,\n        container_uri: str,\n        staging_bucket: str,\n        job_name: str,\n        job_suffix: str,\n        master_machine_type: str,\n        worker_machine_type: str,\n        num_workers: int,\n        replica_count: int\n):\n\n    import json\n    import google.cloud.aiplatform as aip\n\n    worker_pool_specs = [\n        {\n            \"machine_spec\": {\n                \"machine_type\": master_machine_type,\n            },\n            \"replica_count\": replica_count,\n            \"container_spec\": {\n                \"image_uri\": container_uri,\n                \"command\": ['python', 'dataframe_task.py'],\n                \"args\": [\n                    '--run_name', job_name + '_' + job_suffix,\n                    '--num_workers', str(num_workers)\n                ],\n            },\n        },\n        {\n            \"machine_spec\": {\n                \"machine_type\": worker_machine_type,\n            },\n            \"replica_count\": replica_count,\n            \"container_spec\": {\n                \"image_uri\": container_uri,\n                \"command\": ['python', 'dataframe_task.py'],\n                \"args\": [\n                    '--num_workers', str(num_workers)\n                ],\n            },\n        }\n    ]\n\n    my_job = aip.CustomJob(\n        display_name=job_name + '_' + job_suffix,\n        worker_pool_specs=worker_pool_specs,\n        staging_bucket=staging_bucket,\n        project=project_id,\n        location=project_location\n    )\n\n    my_job.run()\n\n"
             ],
             "image": "us-west1-docker.pkg.dev/inventory-solution-382204/dask-docker/dask-mlpipeline-image:latest"
           }
@@ -84,11 +90,17 @@
                 "master_machine_type": {
                   "componentInputParameter": "master_machine_type"
                 },
+                "num_workers": {
+                  "componentInputParameter": "replica_count"
+                },
                 "project_id": {
                   "componentInputParameter": "project_id"
                 },
                 "project_location": {
                   "componentInputParameter": "project_location"
+                },
+                "replica_count": {
+                  "componentInputParameter": "num_workers"
                 },
                 "staging_bucket": {
                   "componentInputParameter": "staging_bucket"
@@ -118,11 +130,17 @@
           "master_machine_type": {
             "type": "STRING"
           },
+          "num_workers": {
+            "type": "INT"
+          },
           "project_id": {
             "type": "STRING"
           },
           "project_location": {
             "type": "STRING"
+          },
+          "replica_count": {
+            "type": "INT"
           },
           "staging_bucket": {
             "type": "STRING"
@@ -149,7 +167,10 @@
         "stringValue": "Test"
       },
       "master_machine_type": {
-        "stringValue": "n1-standard-1"
+        "stringValue": "n1-standard-4"
+      },
+      "num_workers": {
+        "intValue": "1"
       },
       "project_id": {
         "stringValue": "inventory-solution-382204"
@@ -157,11 +178,14 @@
       "project_location": {
         "stringValue": "us-central1"
       },
+      "replica_count": {
+        "intValue": "1"
+      },
       "staging_bucket": {
-        "stringValue": "extracted-bucket-kloud9"
+        "stringValue": "dask-staging-bucket"
       },
       "worker_machine_type": {
-        "stringValue": "n1-standard-1"
+        "stringValue": "n1-standard-4"
       }
     }
   }

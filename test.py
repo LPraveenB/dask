@@ -4,7 +4,7 @@ from kfp.v2 import compiler
 import google.cloud.aiplatform as aip
 from google.cloud.aiplatform import pipeline_jobs
 
-with open('dask.json', 'r') as f:
+with open('component/training/dask.json', 'r') as f:
     env = json.load(f)
 
 

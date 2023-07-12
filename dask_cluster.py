@@ -1,7 +1,7 @@
 import json
 from dask_cloudprovider.gcp import GCPCluster
 
-with open('dask.json', 'r') as f:
+with open('component/training/dask.json', 'r') as f:
     env = json.load(f)
 
 PROJECT_ID = env['projectId']

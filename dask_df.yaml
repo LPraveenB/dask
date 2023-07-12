@@ -1,9 +1,18 @@
 name: Dask dataframe
-outputs:
-- {name: Output, type: String}
+inputs:
+- {name: project_id, type: String}
+- {name: project_location, type: String}
+- {name: container_uri, type: String}
+- {name: staging_bucket, type: String}
+- {name: job_name, type: String}
+- {name: job_suffix, type: String}
+- {name: master_machine_type, type: String}
+- {name: worker_machine_type, type: String}
+- {name: num_workers, type: Integer}
+- {name: replica_count, type: Integer}
 implementation:
   container:
-    image: gcr.io/inventory-solution-382204/dask-req:v1.1
+    image: us-west1-docker.pkg.dev/inventory-solution-382204/dask-docker/dask-mlpipeline-image:latest
     command:
     - sh
     - -c
@@ -13,7 +22,7 @@ implementation:
           python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip
       fi
 
-      PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-script-location 'dask==2023.6.0' 'distributed==2023.6.0' 'kfp==1.8.20' && "$0" "$@"
+      PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-script-location 'google-cloud-aiplatform' 'kfp==1.8.20' && "$0" "$@"
     - sh
     - -ec
     - |
@@ -27,12 +36,61 @@ implementation:
       from kfp.v2.dsl import *
       from typing import *
 
-      def dask_dataframe() -> str:
-          import subprocess
+      def dask_dataframe(
+              project_id: str,
+              project_location: str,
+              container_uri: str,
+              staging_bucket: str,
+              job_name: str,
+              job_suffix: str,
+              master_machine_type: str,
+              worker_machine_type: str,
+              num_workers: int,
+              replica_count: int
+      ):
 
-          subprocess.run(["python", "gcp_dask.py"])
+          import json
+          import google.cloud.aiplatform as aip
 
-          return "Dask code executed successfully"
+          worker_pool_specs = [
+              {
+                  "machine_spec": {
+                      "machine_type": master_machine_type,
+                  },
+                  "replica_count": replica_count,
+                  "container_spec": {
+                      "image_uri": container_uri,
+                      "command": ['python', 'dataframe_task.py'],
+                      "args": [
+                          '--run_name', job_name + '_' + job_suffix,
+                          '--num_workers', str(num_workers)
+                      ],
+                  },
+              },
+              {
+                  "machine_spec": {
+                      "machine_type": worker_machine_type,
+                  },
+                  "replica_count": replica_count,
+                  "container_spec": {
+                      "image_uri": container_uri,
+                      "command": ['python', 'dataframe_task.py'],
+                      "args": [
+                          '--num_workers', str(num_workers)
+                      ],
+                  },
+              }
+          ]
+
+          my_job = aip.CustomJob(
+              display_name=job_name + '_' + job_suffix,
+              worker_pool_specs=worker_pool_specs,
+              staging_bucket=staging_bucket,
+              project=project_id,
+              location=project_location
+          )
+
+          my_job.run()
 
     args:
     - --executor_input

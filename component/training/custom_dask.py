@@ -23,14 +23,12 @@ NETWORK = env['network']
 PROJECT_NUMBER = env['projectNumber']
 DASK_IMAGE = env['sourceImage']
 DOCKER_IMAGE = env['dockerImage']
+STAGING_BUCKET = env['stagingBucket']
 
 
 @component(
-    output_component_file="dask_df.yaml",
-    packages_to_install=[
-        "dask==2023.6.0",
-        "distributed==2023.6.0"
-    ],
+    output_component_file="../../dask_df.yaml",
+    packages_to_install=["google-cloud-aiplatform"],
     base_image=CONTAINER_IMAGE
 )
 def dask_dataframe(
@@ -42,9 +40,8 @@ def dask_dataframe(
         job_suffix: str,
         master_machine_type: str,
         worker_machine_type: str,
-        memory_limit: str,
-        base_gcs_path: str,
-        num_workers: int
+        num_workers: int,
+        replica_count: int
 ):
 
     import json
@@ -55,14 +52,12 @@ def dask_dataframe(
             "machine_spec": {
                 "machine_type": master_machine_type,
             },
-            "replica_count": 1,
+            "replica_count": replica_count,
             "container_spec": {
                 "image_uri": container_uri,
                 "command": ['python', 'dataframe_task.py'],
                 "args": [
                     '--run_name', job_name + '_' + job_suffix,
-                    '--memory_limit', memory_limit,
-                    '--base_gcs_path', base_gcs_path,
                     '--num_workers', str(num_workers)
                 ],
             },
@@ -71,11 +66,11 @@ def dask_dataframe(
             "machine_spec": {
                 "machine_type": worker_machine_type,
             },
+            "replica_count": replica_count,
             "container_spec": {
                 "image_uri": container_uri,
-                "command": ['bash', 'entrypoint.sh'],
+                "command": ['python', 'dataframe_task.py'],
                 "args": [
-                    '--memory_limit', memory_limit,
                     '--num_workers', str(num_workers)
                 ],
             },
@@ -99,14 +94,15 @@ def dask_dataframe(
     pipeline_root=PIPELINE_ROOT
 )
 def dask_pipeline(
-project_id: str,
-        project_location: str = PROJECT_ID,
+        project_id: str = PROJECT_ID,
+        project_location: str = REGION,
         container_uri: str = CONTAINER_IMAGE,
-        staging_bucket: str = GCS_BUCKET,
+        staging_bucket: str = STAGING_BUCKET,
         job_name: str = "Dask-DF",
         job_suffix: str = "Test",
         master_machine_type: str = MASTER_MACHINE_TYPE,
         worker_machine_type: str = WORKER_MACHINE_TYPE,
+        replica_count: int = 1,
         num_workers: int = WORKERS
 ):
     dask_dataframe_task = dask_dataframe(
@@ -118,8 +114,29 @@ project_id: str,
         job_suffix,
         master_machine_type,
         worker_machine_type,
+        replica_count,
         num_workers
     )
+
+
+compiler.Compiler().compile(
+    pipeline_func=dask_pipeline,
+    package_path=PIPELINE_JSON
+)
+
+aip.init(project=PROJECT_ID, location=REGION)
+
+ai_job = aip.PipelineJob(
+    display_name="dataframe-testing",
+    template_path=PIPELINE_JSON,
+    enable_caching=False
+)
+
+ai_job.run(
+    service_account=SERVICE_ACCOUNT,
+    network=f"projects/{PROJECT_NUMBER}/global/networks/{NETWORK}"
+)
+
 
 
 

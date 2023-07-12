@@ -2,7 +2,7 @@ import json
 import dask.dataframe as dd
 from google.cloud import storage
 
-with open('dask.json', 'r') as f:
+with open('component/training/dask.json', 'r') as f:
     env = json.load(f)
 
 GCS_BUCKET = env['bucket']

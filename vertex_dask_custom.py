@@ -3,7 +3,7 @@ from kfp.v2.dsl import component, pipeline
 from kfp.v2 import compiler
 from google.cloud import aiplatform as aip
 
-with open('dask.json', 'r') as f:
+with open('component/training/dask.json', 'r') as f:
     env = json.load(f)
 
 API_ENDPOINT = "{}-aiplatform.googleapis.com".format(env['region'])
