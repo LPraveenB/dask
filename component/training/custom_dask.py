@@ -1,7 +1,10 @@
 import json
-from kfp.v2.dsl import component, pipeline
+# import kfp.dsl as dsl
+# import kfp.compiler
+from kfp.dsl import component, pipeline
 from kfp.v2 import compiler
 from google.cloud import aiplatform as aip
+
 
 with open('dask.json', 'r') as f:
     env = json.load(f)
@@ -55,7 +58,7 @@ def dask_dataframe(
             "replica_count": replica_count,
             "container_spec": {
                 "image_uri": container_uri,
-                "command": ['python', 'dataframe_task.py'],
+                "command": ['bash', 'entrypoint.sh'],
                 "args": [
                     '--run_name', job_name + '_' + job_suffix,
                     '--num_workers', str(num_workers)
@@ -69,7 +72,7 @@ def dask_dataframe(
             "replica_count": replica_count,
             "container_spec": {
                 "image_uri": container_uri,
-                "command": ['python', 'dataframe_task.py'],
+                "command": ['bash', 'entrypoint.sh'],
                 "args": [
                     '--num_workers', str(num_workers)
                 ],

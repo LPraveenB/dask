@@ -1,7 +1,7 @@
 {
   "projectId": "inventory-solution-382204",
-  "zone": "us-central1-a",
-  "region": "us-central1",
+  "zone": "us-west1-a",
+  "region": "us-west1",
   "bucket": "extracted-bucket-kloud9",
   "blobPrefix": "dask_data",
   "projectNumber": "1051633815220",
