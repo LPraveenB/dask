@@ -25,7 +25,7 @@ jobs:
       - name: Copy application_default_credentials.json
         run: |
           mkdir -p component/training
-          echo -n "${{ secrets.GCR_AUTH_KEY }}" > component/training/gcr_auth_key.json
+          printf '%s' "${{ secrets.GCR_AUTH_KEY }}" > component/training/gcr_auth_key.json
 
       - name: Run build script
         run: |
