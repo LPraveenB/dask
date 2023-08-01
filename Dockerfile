@@ -46,5 +46,3 @@ RUN touch /app/.config/dask/cloudprovider.yaml
 COPY cloudprovider.yaml /app/.config/dask/cloudprovider.yaml
 COPY gcp_dask.py /app
 COPY component/training/dask.json /app
-
-ENTRYPOINT ["python", "gcp_dask.py"]
