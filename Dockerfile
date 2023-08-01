@@ -36,8 +36,7 @@ WORKDIR /app
 COPY requirements.txt /app
 #COPY git_clone.sh /app
 RUN pip install google-api-python-client
-#RUN pip3 install -r requirements.txt
-#RUN bash git_clone.sh
+
 
 RUN rm -rf /train
 
