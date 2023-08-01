@@ -50,8 +50,8 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'dask==2023.6.0'\
-          \ 'distributed==2023.6.0' 'kfp==2.0.0' && \"$0\" \"$@\"\n"
+          \ python3 -m pip install --quiet     --no-warn-script-location 'google-cloud-aiplatform==1.24.1'\
+          \ 'kfp==2.0.0' && \"$0\" \"$@\"\n"
         - sh
         - -ec
         - 'program_path=$(mktemp -d)
@@ -64,24 +64,30 @@ deploymentSpec:
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
           \ *\n\ndef dask_dataframe(\n        project_id: str,\n        project_location:\
           \ str,\n        container_uri: str,\n        staging_bucket: str,\n    \
-          \    job_name: str,\n        job_suffix: str,\n        master_machine_type:\
-          \ str,\n        worker_machine_type: str,\n        num_workers: int,\n \
-          \       replica_count: int\n):\n\n    import json\n    import google.cloud.aiplatform\
+          \    job_name: str,\n        job_suffix: str,\n        replica_count: int,\n\
+          \        master_machine_type: str,\n        worker_machine_type: str,\n\
+          \        num_workers: int,\n):\n    \"\"\"Run a custom training job using\
+          \ a training script.\n    \"\"\"\n    import json\n    import logging\n\
+          \    import os.path\n    import time\n    import google.cloud.aiplatform\
           \ as aip\n\n    worker_pool_specs = [\n        {\n            \"machine_spec\"\
           : {\n                \"machine_type\": master_machine_type,\n          \
-          \  },\n            \"replica_count\": replica_count,\n            \"container_spec\"\
+          \  },\n            \"replica_count\": 1,\n            \"container_spec\"\
           : {\n                \"image_uri\": container_uri,\n                \"command\"\
           : ['bash', 'entrypoint.sh'],\n                \"args\": [\n            \
           \        '--run_name', job_name + '_' + job_suffix,\n                  \
-          \  '--num_workers', str(num_workers)\n                ],\n            },\n\
-          \        },\n        {\n            \"machine_spec\": {\n              \
-          \  \"machine_type\": worker_machine_type,\n            },\n            \"\
-          replica_count\": replica_count,\n            \"container_spec\": {\n   \
-          \             \"image_uri\": container_uri,\n                \"command\"\
-          : ['bash', 'entrypoint.sh'],\n                \"args\": [\n            \
-          \        '--num_workers', str(num_workers)\n                ],\n       \
-          \     },\n        }\n    ]\n\n"
-        image: us-west1-docker.pkg.dev/inventory-solution-382204/dask-docker/dask-mlpipeline-image:latest
+          \  '--num_workers', str(num_workers),\n                    '--steps', 'evaluate'\n\
+          \                ],\n            },\n        },\n        {\n           \
+          \ \"machine_spec\": {\n                \"machine_type\": worker_machine_type,\n\
+          \            },\n            \"replica_count\": replica_count,\n       \
+          \     \"container_spec\": {\n                \"image_uri\": container_uri,\n\
+          \                \"command\": ['bash', 'entrypoint.sh'],\n             \
+          \   \"args\": [\n                    '--num_workers', str(num_workers),\n\
+          \                ],\n            },\n        }\n    ]\n\n    # my_job =\
+          \ aip.CustomJob(\n    #     display_name=job_name + '_' + job_suffix,\n\
+          \    #     worker_pool_specs=worker_pool_specs,\n    #     staging_bucket=staging_bucket,\n\
+          \    #     project=project_id,\n    #     location=project_location\n  \
+          \  # )\n\n    # my_job.run()\n\n"
+        image: python:3.7
 pipelineInfo:
   name: dask-dataframe
 root:

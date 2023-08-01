@@ -1,0 +1,263 @@
+# PIPELINE DEFINITION
+# Name: custom-train-job
+# Inputs:
+#    base_gcs_path: str
+#    container_uri: str
+#    data_split_path: str
+#    eval_metric: str
+#    feature_count: int
+#    job_name: str
+#    job_suffix: str
+#    learning_rate: float
+#    location_group: str
+#    master_machine_type: str
+#    max_depth: int
+#    memory_limit: str
+#    min_child_weight: int
+#    no_worker_threads: int
+#    num_booster: int
+#    num_workers: int
+#    project_id: str
+#    project_location: str
+#    replica_count: int
+#    run_type: str
+#    scale_pos_multiply_factor: float
+#    staging_bucket: str
+#    train_start_date: str
+#    worker_machine_type: str
+components:
+  comp-custom-train-job:
+    executorLabel: exec-custom-train-job
+    inputDefinitions:
+      parameters:
+        base_gcs_path:
+          parameterType: STRING
+        container_uri:
+          parameterType: STRING
+        data_split_path:
+          parameterType: STRING
+        eval_metric:
+          parameterType: STRING
+        feature_count:
+          parameterType: NUMBER_INTEGER
+        job_name:
+          parameterType: STRING
+        job_suffix:
+          parameterType: STRING
+        learning_rate:
+          parameterType: NUMBER_DOUBLE
+        location_group:
+          parameterType: STRING
+        master_machine_type:
+          parameterType: STRING
+        max_depth:
+          parameterType: NUMBER_INTEGER
+        memory_limit:
+          parameterType: STRING
+        min_child_weight:
+          parameterType: NUMBER_INTEGER
+        no_worker_threads:
+          parameterType: NUMBER_INTEGER
+        num_booster:
+          parameterType: NUMBER_INTEGER
+        num_workers:
+          parameterType: NUMBER_INTEGER
+        project_id:
+          parameterType: STRING
+        project_location:
+          parameterType: STRING
+        replica_count:
+          parameterType: NUMBER_INTEGER
+        run_type:
+          parameterType: STRING
+        scale_pos_multiply_factor:
+          parameterType: NUMBER_DOUBLE
+        staging_bucket:
+          parameterType: STRING
+        train_start_date:
+          parameterType: STRING
+        worker_machine_type:
+          parameterType: STRING
+deploymentSpec:
+  executors:
+    exec-custom-train-job:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - custom_train_job
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'google-cloud-aiplatform==1.24.1'\
+          \ 'kfp==2.0.0' && \"$0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef custom_train_job(\n        project_id: str,\n        project_location:\
+          \ str,\n        container_uri: str,\n        staging_bucket: str,\n    \
+          \    job_name: str,\n        job_suffix: str,\n        replica_count: int,\n\
+          \        master_machine_type: str,\n        worker_machine_type: str,\n\
+          \        run_type: str,\n        train_start_date: str,\n        memory_limit:\
+          \ str,\n        base_gcs_path: str,\n        num_workers: int,\n       \
+          \ no_worker_threads: int,\n        data_split_path: str,\n        location_group:\
+          \ str,\n        num_booster: int,\n        max_depth: int,\n        min_child_weight:\
+          \ int,\n        learning_rate: float,\n        feature_count: int,\n   \
+          \     scale_pos_multiply_factor: float,\n        eval_metric: str):\n  \
+          \  \"\"\"Run a custom training job using a training script.\n    \"\"\"\n\
+          \    import json\n    import logging\n    import os.path\n    import time\n\
+          \    import google.cloud.aiplatform as aip\n\n    worker_pool_specs = [\n\
+          \        {\n            \"machine_spec\": {\n                \"machine_type\"\
+          : master_machine_type,\n            },\n            \"replica_count\": 1,\n\
+          \            \"container_spec\": {\n                \"image_uri\": container_uri,\n\
+          \                \"command\": ['bash', 'entrypoint.sh'],\n             \
+          \   \"args\": [\n                    '--run_name', job_name + '_' + job_suffix,\n\
+          \                    '--run_type', run_type,\n                    '--train_start_date',\
+          \ train_start_date,\n                    '--memory_limit', memory_limit,\n\
+          \                    '--base_gcs_path', base_gcs_path,\n               \
+          \     '--num_workers', str(num_workers),\n                    '--no_worker_threads',\
+          \ str(no_worker_threads),\n                    '--data_split_path', data_split_path,\n\
+          \                    '--location_group', location_group,\n             \
+          \       '--num_booster', str(num_booster),\n                    '--min_train_days',\
+          \ '270',\n                    '--max_depth', str(max_depth),\n         \
+          \           '--min_child_weight', str(min_child_weight),\n             \
+          \       '--learning_rate', str(learning_rate),\n                    '--feature_count',\
+          \ str(feature_count),\n                    '--scale_pos_multiply_factor',\
+          \ str(scale_pos_multiply_factor),\n                    '--eval_metric',\
+          \ eval_metric,\n                    '--steps', 'train'\n               \
+          \ ],\n            },\n        },\n        {\n            \"machine_spec\"\
+          : {\n                \"machine_type\": worker_machine_type,\n          \
+          \  },\n            \"replica_count\": replica_count,\n            \"container_spec\"\
+          : {\n                \"image_uri\": container_uri,\n                \"command\"\
+          : ['bash', 'entrypoint.sh'],\n                \"args\": [\n            \
+          \        '--memory_limit', memory_limit,\n                    '--num_workers',\
+          \ str(num_workers),\n                    '--no_worker_threads', str(no_worker_threads)\n\
+          \                ],\n            },\n        }\n    ]\n\n    my_job = aip.CustomJob(\n\
+          \        display_name=job_name + '_' + job_suffix,\n        worker_pool_specs=worker_pool_specs,\n\
+          \        staging_bucket=staging_bucket,\n        project=project_id,\n \
+          \       location=project_location\n    )\n\n    my_job.run()\n\n"
+        image: python:3.7
+pipelineInfo:
+  name: custom-train-job
+root:
+  dag:
+    tasks:
+      custom-train-job:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-custom-train-job
+        inputs:
+          parameters:
+            base_gcs_path:
+              componentInputParameter: base_gcs_path
+            container_uri:
+              componentInputParameter: container_uri
+            data_split_path:
+              componentInputParameter: data_split_path
+            eval_metric:
+              componentInputParameter: eval_metric
+            feature_count:
+              componentInputParameter: feature_count
+            job_name:
+              componentInputParameter: job_name
+            job_suffix:
+              componentInputParameter: job_suffix
+            learning_rate:
+              componentInputParameter: learning_rate
+            location_group:
+              componentInputParameter: location_group
+            master_machine_type:
+              componentInputParameter: master_machine_type
+            max_depth:
+              componentInputParameter: max_depth
+            memory_limit:
+              componentInputParameter: memory_limit
+            min_child_weight:
+              componentInputParameter: min_child_weight
+            no_worker_threads:
+              componentInputParameter: no_worker_threads
+            num_booster:
+              componentInputParameter: num_booster
+            num_workers:
+              componentInputParameter: num_workers
+            project_id:
+              componentInputParameter: project_id
+            project_location:
+              componentInputParameter: project_location
+            replica_count:
+              componentInputParameter: replica_count
+            run_type:
+              componentInputParameter: run_type
+            scale_pos_multiply_factor:
+              componentInputParameter: scale_pos_multiply_factor
+            staging_bucket:
+              componentInputParameter: staging_bucket
+            train_start_date:
+              componentInputParameter: train_start_date
+            worker_machine_type:
+              componentInputParameter: worker_machine_type
+        taskInfo:
+          name: custom-train-job
+  inputDefinitions:
+    parameters:
+      base_gcs_path:
+        parameterType: STRING
+      container_uri:
+        parameterType: STRING
+      data_split_path:
+        parameterType: STRING
+      eval_metric:
+        parameterType: STRING
+      feature_count:
+        parameterType: NUMBER_INTEGER
+      job_name:
+        parameterType: STRING
+      job_suffix:
+        parameterType: STRING
+      learning_rate:
+        parameterType: NUMBER_DOUBLE
+      location_group:
+        parameterType: STRING
+      master_machine_type:
+        parameterType: STRING
+      max_depth:
+        parameterType: NUMBER_INTEGER
+      memory_limit:
+        parameterType: STRING
+      min_child_weight:
+        parameterType: NUMBER_INTEGER
+      no_worker_threads:
+        parameterType: NUMBER_INTEGER
+      num_booster:
+        parameterType: NUMBER_INTEGER
+      num_workers:
+        parameterType: NUMBER_INTEGER
+      project_id:
+        parameterType: STRING
+      project_location:
+        parameterType: STRING
+      replica_count:
+        parameterType: NUMBER_INTEGER
+      run_type:
+        parameterType: STRING
+      scale_pos_multiply_factor:
+        parameterType: NUMBER_DOUBLE
+      staging_bucket:
+        parameterType: STRING
+      train_start_date:
+        parameterType: STRING
+      worker_machine_type:
+        parameterType: STRING
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.0.0

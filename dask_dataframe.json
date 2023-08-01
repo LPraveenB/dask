@@ -1,168 +1,162 @@
 {
-  "pipelineSpec": {
-    "components": {
-      "comp-dask-dataframe": {
-        "executorLabel": "exec-dask-dataframe",
-        "inputDefinitions": {
-          "parameters": {
-            "container_uri": {
-              "type": "STRING"
-            },
-            "job_name": {
-              "type": "STRING"
-            },
-            "job_suffix": {
-              "type": "STRING"
-            },
-            "master_machine_type": {
-              "type": "STRING"
-            },
-            "project_id": {
-              "type": "STRING"
-            },
-            "project_location": {
-              "type": "STRING"
-            },
-            "staging_bucket": {
-              "type": "STRING"
-            },
-            "worker_machine_type": {
-              "type": "STRING"
-            }
-          }
-        }
-      }
-    },
-    "deploymentSpec": {
-      "executors": {
-        "exec-dask-dataframe": {
-          "container": {
-            "args": [
-              "--executor_input",
-              "{{$}}",
-              "--function_to_execute",
-              "dask_dataframe"
-            ],
-            "command": [
-              "sh",
-              "-c",
-              "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-script-location 'dask==2023.6.0' 'distributed==2023.6.0' 'kfp==1.8.20' && \"$0\" \"$@\"\n",
-              "sh",
-              "-ec",
-              "program_path=$(mktemp -d)\nprintf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\"\npython3 -m kfp.v2.components.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n",
-              "\nimport kfp\nfrom kfp.v2 import dsl\nfrom kfp.v2.dsl import *\nfrom typing import *\n\ndef dask_dataframe(\n        project_id: str,\n        project_location: str,\n        container_uri: str,\n        staging_bucket: str,\n        job_name: str,\n        job_suffix: str,\n        master_machine_type: str,\n        worker_machine_type: str\n):\n\n    import json\n    import google.cloud.aiplatform as aip\n\n    worker_pool_specs = [\n        {\n            \"machine_spec\": {\n                \"machine_type\": master_machine_type,\n            },\n            \"replica_count\": 1,\n            \"container_spec\": {\n                \"image_uri\": container_uri,\n                \"command\": ['python', 'dataframe_task.py'],\n                \"args\": [\n                    '--run_name', job_name + '_' + job_suffix,\n                    '--num_workers', str(WORKERS)\n                ],\n            },\n        },\n        {\n            \"machine_spec\": {\n                \"machine_type\": worker_machine_type,\n            },\n            \"container_spec\": {\n                \"image_uri\": container_uri,\n                \"command\": ['bash', 'entrypoint.sh'],\n                \"args\": [\n                    '--num_workers', str(WORKERS)\n                ],\n            },\n        }\n    ]\n\n    my_job = aip.CustomJob(\n        display_name=job_name + '_' + job_suffix,\n        worker_pool_specs=worker_pool_specs,\n        staging_bucket=staging_bucket,\n        project=project_id,\n        location=project_location\n    )\n\n    my_job.run()\n\n"
-            ],
-            "image": "us-west1-docker.pkg.dev/inventory-solution-382204/dask-docker/dask-mlpipeline-image:latest"
-          }
-        }
-      }
-    },
-    "pipelineInfo": {
-      "name": "daskdf"
-    },
-    "root": {
-      "dag": {
-        "tasks": {
-          "dask-dataframe": {
-            "cachingOptions": {
-              "enableCache": true
-            },
-            "componentRef": {
-              "name": "comp-dask-dataframe"
-            },
-            "inputs": {
-              "parameters": {
-                "container_uri": {
-                  "componentInputParameter": "container_uri"
-                },
-                "job_name": {
-                  "componentInputParameter": "job_name"
-                },
-                "job_suffix": {
-                  "componentInputParameter": "job_suffix"
-                },
-                "master_machine_type": {
-                  "componentInputParameter": "master_machine_type"
-                },
-                "project_id": {
-                  "componentInputParameter": "project_id"
-                },
-                "project_location": {
-                  "componentInputParameter": "project_location"
-                },
-                "staging_bucket": {
-                  "componentInputParameter": "staging_bucket"
-                },
-                "worker_machine_type": {
-                  "componentInputParameter": "worker_machine_type"
-                }
-              }
-            },
-            "taskInfo": {
-              "name": "dask-dataframe"
-            }
-          }
-        }
-      },
+  "components": {
+    "comp-dask-dataframe": {
+      "executorLabel": "exec-dask-dataframe",
       "inputDefinitions": {
         "parameters": {
           "container_uri": {
-            "type": "STRING"
+            "parameterType": "STRING"
           },
           "job_name": {
-            "type": "STRING"
+            "parameterType": "STRING"
           },
           "job_suffix": {
-            "type": "STRING"
+            "parameterType": "STRING"
           },
           "master_machine_type": {
-            "type": "STRING"
+            "parameterType": "STRING"
+          },
+          "num_workers": {
+            "parameterType": "NUMBER_INTEGER"
           },
           "project_id": {
-            "type": "STRING"
+            "parameterType": "STRING"
           },
           "project_location": {
-            "type": "STRING"
+            "parameterType": "STRING"
+          },
+          "replica_count": {
+            "parameterType": "NUMBER_INTEGER"
           },
           "staging_bucket": {
-            "type": "STRING"
+            "parameterType": "STRING"
           },
           "worker_machine_type": {
-            "type": "STRING"
+            "parameterType": "STRING"
+          }
+        }
+      }
+    }
+  },
+  "defaultPipelineRoot": "gs://extracted-bucket-kloud9/dask_data/pipeline_root/",
+  "deploymentSpec": {
+    "executors": {
+      "exec-dask-dataframe": {
+        "container": {
+          "args": [
+            "--executor_input",
+            "{{$}}",
+            "--function_to_execute",
+            "dask_dataframe"
+          ],
+          "command": [
+            "sh",
+            "-c",
+            "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-script-location 'google-cloud-aiplatform==1.24.1' 'kfp==2.0.0' && \"$0\" \"$@\"\n",
+            "sh",
+            "-ec",
+            "program_path=$(mktemp -d)\nprintf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\"\npython3 -m kfp.components.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n",
+            "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef dask_dataframe(\n        project_id: str,\n        project_location: str,\n        container_uri: str,\n        staging_bucket: str,\n        job_name: str,\n        job_suffix: str,\n        replica_count: int,\n        master_machine_type: str,\n        worker_machine_type: str,\n        num_workers: int,\n):\n    \"\"\"Run a custom training job using a training script.\n    \"\"\"\n    import json\n    import logging\n    import os.path\n    import time\n    import google.cloud.aiplatform as aip\n\n    worker_pool_specs = [\n        {\n            \"machine_spec\": {\n                \"machine_type\": master_machine_type,\n            },\n            \"replica_count\": 1,\n            \"container_spec\": {\n                \"image_uri\": container_uri,\n                \"command\": ['bash', 'entrypoint.sh'],\n                \"args\": [\n                    '--run_name', job_name + '_' + job_suffix,\n                    '--num_workers', str(num_workers),\n                    '--steps', 'evaluate'\n                ],\n            },\n        },\n        {\n            \"machine_spec\": {\n                \"machine_type\": worker_machine_type,\n            },\n            \"replica_count\": replica_count,\n            \"container_spec\": {\n                \"image_uri\": container_uri,\n                \"command\": ['bash', 'entrypoint.sh'],\n                \"args\": [\n                    '--num_workers', str(num_workers),\n                ],\n            },\n        }\n    ]\n\n    # my_job = aip.CustomJob(\n    #     display_name=job_name + '_' + job_suffix,\n    #     worker_pool_specs=worker_pool_specs,\n    #     staging_bucket=staging_bucket,\n    #     project=project_id,\n    #     location=project_location\n    # )\n\n    # my_job.run()\n\n"
+          ],
+          "image": "python:3.7"
+        }
+      }
+    }
+  },
+  "pipelineInfo": {
+    "description": "Dask Dataframe",
+    "name": "daskdf"
+  },
+  "root": {
+    "dag": {
+      "tasks": {
+        "dask-dataframe": {
+          "cachingOptions": {
+            "enableCache": true
+          },
+          "componentRef": {
+            "name": "comp-dask-dataframe"
+          },
+          "inputs": {
+            "parameters": {
+              "container_uri": {
+                "runtimeValue": {
+                  "constant": "us-west1-docker.pkg.dev/inventory-solution-382204/dask-docker/dask-mlpipeline-image:latest"
+                }
+              },
+              "job_name": {
+                "componentInputParameter": "run_name"
+              },
+              "job_suffix": {
+                "runtimeValue": {
+                  "constant": "Dask-20230727_114911"
+                }
+              },
+              "master_machine_type": {
+                "componentInputParameter": "train_master_machine_type"
+              },
+              "num_workers": {
+                "componentInputParameter": "train_num_workers"
+              },
+              "project_id": {
+                "runtimeValue": {
+                  "constant": "inventory-solution-382204"
+                }
+              },
+              "project_location": {
+                "runtimeValue": {
+                  "constant": "us-west1"
+                }
+              },
+              "replica_count": {
+                "componentInputParameter": "train_replica_count"
+              },
+              "staging_bucket": {
+                "runtimeValue": {
+                  "constant": "dask-staging-bucket"
+                }
+              },
+              "worker_machine_type": {
+                "componentInputParameter": "train_worker_machine_type"
+              }
+            }
+          },
+          "taskInfo": {
+            "name": "dask-dataframe"
           }
         }
       }
     },
-    "schemaVersion": "2.0.0",
-    "sdkVersion": "kfp-1.8.20"
-  },
-  "runtimeConfig": {
-    "gcsOutputDirectory": "gs://extracted-bucket-kloud9/dask_data/pipeline_root/",
-    "parameters": {
-      "container_uri": {
-        "stringValue": "us-west1-docker.pkg.dev/inventory-solution-382204/dask-docker/dask-mlpipeline-image:latest"
-      },
-      "job_name": {
-        "stringValue": "Dask-DF"
-      },
-      "job_suffix": {
-        "stringValue": "Test"
-      },
-      "master_machine_type": {
-        "stringValue": "n1-standard-1"
-      },
-      "project_id": {
-        "stringValue": "inventory-solution-382204"
-      },
-      "project_location": {
-        "stringValue": "us-central1"
-      },
-      "staging_bucket": {
-        "stringValue": "extracted-bucket-kloud9"
-      },
-      "worker_machine_type": {
-        "stringValue": "n1-standard-1"
+    "inputDefinitions": {
+      "parameters": {
+        "run_name": {
+          "defaultValue": "dask-testing",
+          "isOptional": true,
+          "parameterType": "STRING"
+        },
+        "train_master_machine_type": {
+          "defaultValue": "n1-highmem-2",
+          "isOptional": true,
+          "parameterType": "STRING"
+        },
+        "train_num_workers": {
+          "defaultValue": 2.0,
+          "isOptional": true,
+          "parameterType": "NUMBER_INTEGER"
+        },
+        "train_replica_count": {
+          "defaultValue": 3.0,
+          "isOptional": true,
+          "parameterType": "NUMBER_INTEGER"
+        },
+        "train_worker_machine_type": {
+          "defaultValue": "n1-highmem-4",
+          "isOptional": true,
+          "parameterType": "STRING"
+        }
       }
     }
-  }
+  },
+  "schemaVersion": "2.1.0",
+  "sdkVersion": "kfp-2.0.0"
 }
