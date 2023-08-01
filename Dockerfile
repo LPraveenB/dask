@@ -1,24 +1,22 @@
 FROM docker.io/daskdev/dask:latest-py3.10
 
-RUN apt-get update && \
-    DEBIAN_FRONTEND=noninteractive TZ=Etc/UTC apt-get -y install tzdata
-
-RUN apt-get update && \
-    apt-get install -y software-properties-common \
-                       git \
-                       curl
+RUN curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py && \
+    python get-pip.py && \
+    pip3 install setuptools && \
+    rm get-pip.py
+RUN python3 -m pip install --upgrade pip
 
 
-# Add the Google Cloud public key and package repository
-RUN echo "deb [signed-by=/usr/share/keyrings/cloud.google.gpg] https://packages.cloud.google.com/apt cloud-sdk main" \
-    | tee -a /etc/apt/sources.list.d/google-cloud-sdk.list
-
-# Import the Google Cloud public key
-RUN curl https://packages.cloud.google.com/apt/doc/apt-key.gpg \
-    | apt-key --keyring /usr/share/keyrings/cloud.google.gpg add -
-
-# Update the package list and install gcloud
-RUN apt-get update && apt-get install -y google-cloud-sdk
+ENV PATH="/root/miniconda3/bin:${PATH}"
+ARG PATH="/root/miniconda3/bin:${PATH}"
+RUN wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh && \
+    mkdir /root/.conda && \
+    bash Miniconda3-latest-Linux-x86_64.sh -b && \
+    rm -f Miniconda3-latest-Linux-x86_64.sh && \
+    echo "Running $(conda --version)" && \
+    conda init bash && \
+    . /root/.bashrc && \
+    conda update conda
 
 #ENV CONDA_HOME=/opt/miniconda3
 #ENV PYSPARK_PYTHON=${CONDA_HOME}/bin/python
@@ -39,10 +37,13 @@ RUN pip install google-api-python-client
 #RUN pip3 install -r requirements.txt
 #RUN bash git_clone.sh
 
-COPY environment.yml /app
-RUN mkdir /app/.config
-RUN mkdir /app/.config/dask/
-RUN touch /app/.config/dask/cloudprovider.yaml
-COPY cloudprovider.yaml /app/.config/dask/cloudprovider.yaml
-COPY gcp_dask.py /app
-COPY component/training/dask.json /app
+RUN rm -rf /train
+
+RUN mkdir -p /train
+COPY run_notebook_component.py /train
+COPY generic_utils.py /train
+COPY entrypoint.sh /train
+
+WORKDIR /train
+
+ENTRYPOINT ["bash", "entrypoint.sh"]
