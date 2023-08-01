@@ -1,4 +1,6 @@
-FROM docker.io/daskdev/dask:latest-py3.10
+ARG PYTHON_VERSION="3.8.15"
+FROM python:${PYTHON_VERSION}
+
 
 RUN curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py && \
     python get-pip.py && \
