@@ -16,8 +16,8 @@ jobs:
       - name: Set up Google Cloud SDK
         uses: google-github-actions/setup-gcloud@v0.3.0
         with:
-          project_id: ${{ secrets.GCP_PROJECT_ID }} # Replace with your GCP project ID
-          service_account_key: ${{ secrets.GCR_AUTH_KEY }} # Add the service account key as a secret in your repository settings
+          project_id: ${{ secrets.GCP_PROJECT_ID }}
+          service_account_key: ${{ secrets.GCR_AUTH_KEY }}
 
       - name: Configure Docker
         run: gcloud auth configure-docker us-west1-docker.pkg.dev
@@ -25,4 +25,4 @@ jobs:
       - name: Run build script
         run: |
           chmod +x build.sh
-          ./build.sh
+          ./build.sh "${{ secrets.GCR_AUTH_KEY }}"
