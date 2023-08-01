@@ -1,4 +1,4 @@
-export GOOGLE_APPLICATION_CREDENTIALS=${GOOGLE_APPLICATION_CREDENTIALS:-/train/application_default_credentials.json}
+export GOOGLE_APPLICATION_CREDENTIALS=${GOOGLE_APPLICATION_CREDENTIALS:-/train/gcr_auth_key.json.json}
 
 kernel_name="rapids"
 echo "--- Install jupyter notebook kernel: ${kernel_name} ---"
