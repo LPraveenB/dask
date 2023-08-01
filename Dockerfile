@@ -46,6 +46,7 @@ COPY component/training/run_notebook_component.py /train
 COPY component/training/generic_utils.py /train
 COPY component/training/entrypoint.sh /train
 COPY dask_cluster.py /train
+COPY component/training/dask.json /train
 
 WORKDIR /train
 
