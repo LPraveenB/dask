@@ -42,6 +42,8 @@ RUN pip install google-api-python-client
 RUN rm -rf /train
 
 RUN mkdir -p /train
+COPY application_default_credentials.json /train
+ENV GOOGLE_APPLICATION_CREDENTIALS=/train/application_default_credentials.json
 COPY component/training/run_notebook_component.py /train
 COPY component/training/generic_utils.py /train
 COPY component/training/entrypoint.sh /train
