@@ -47,8 +47,9 @@ COPY component/training/generic_utils.py /train
 COPY component/training/entrypoint.sh /train
 COPY component/training/dask.json /train
 COPY dask_cluster.py /train
+COPY gcr_auth_key.json /train
 ARG GCP_SA_KEY
-ENV GOOGLE_APPLICATION_CREDENTIALS=/train/gcp_sa_key.json
+ENV GOOGLE_APPLICATION_CREDENTIALS=/train/gcr_auth_key.json
 RUN echo "$GCP_SA_KEY" > /train/gcp_sa_key.json
 
 WORKDIR /train
