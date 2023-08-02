@@ -1,11 +1,11 @@
 #!/bin/bash
 set -e
 
-# Copy secret to a temporary file
-printf '%s' "$1" > temp_gcp_sa_key.json
-
-# Escape double quotes and save to /train/gcp_sa_key.json
-cat temp_gcp_sa_key.json | sed 's/"/\\"/g' > /component/training/gcr_auth_key.json
+## Copy secret to a temporary file
+#printf '%s' "$1" > temp_gcp_sa_key.json
+#
+## Escape double quotes and save to /train/gcp_sa_key.json
+#cat temp_gcp_sa_key.json | sed 's/"/\\"/g' > /component/training/gcr_auth_key.json
 
 # Build Docker image
 docker build --no-cache -t dask-mlpipeline-image:latest .
