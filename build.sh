@@ -1,4 +1,4 @@
-docker build --no-cache -t dask-mlpipeline-image:latest .
+docker build --no-cache --build-arg GCR_AUTH_KEY="$1" -t dask-mlpipeline-image:latest .
 
 gcloud auth configure-docker us-west1-docker.pkg.dev
 
