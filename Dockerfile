@@ -45,6 +45,7 @@ ENV GOOGLE_APPLICATION_CREDENTIALS=/train/gcr_auth_key.json
 COPY component/training/run_notebook_component.py /train
 COPY component/training/generic_utils.py /train
 COPY component/training/entrypoint.sh /train
+COPY component/training/dask.json /train
 COPY dask_cluster.py /train
 ARG GCP_SA_KEY
 ENV GOOGLE_APPLICATION_CREDENTIALS=/train/gcp_sa_key.json
